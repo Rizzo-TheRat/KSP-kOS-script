@@ -24,8 +24,8 @@ if ship=Kuniverse:activevessel{  //only boot on active ship
 	}
 	if ship:connection:isconnected{
 		ClearFiles().
-		LoadSystem().
-	}else if exists("1:/lib_system.ks") or exists("1:/lib_system.ksm"){
+		Loadsystem().
+	}else if exists("1:/Run_System.ks") or exists("1:/Run_System.ksm"){
 		print "No connection, using existing system file" at (0,10).
 		wait 1.
 	}else{
@@ -38,17 +38,18 @@ if ship=Kuniverse:activevessel{  //only boot on active ship
 		set warp to 0.
 		wait until kuniverse:timewarp:issettled.				
 		ClearFiles().
-		LoadSystem().			
+		Loadsystem().
 	}
-	
 	Clearscreen.
-	RUNPATH("1:/lib_system").
-//	StatusUpdate().  //seperators and mission details	
-//	Loadfile("Mission",true).
+	RUNPATH("1:/Run_System").
 }
 
-Function ClearFiles{
-	//Clear old files.
+
+
+
+
+//Clear old files.
+	Function ClearFiles{
 	switch to 1.
 	wait 0.1.
 	local filelist to list().
@@ -63,7 +64,7 @@ Function ClearFiles{
 
 Function LoadSystem{
 	Switch to 0.
-	//compile "lib_system.ks".
+	compile "Run_System.ks".
 	Switch to 1.
-	COPYPATH("0:/lib_system.ks","1:lib_system.ks").  //CHANGE BACK TO KSM WHEN WORKING
+	COPYPATH("0:/Run_System.ks","1:/Run_System.ks").  //CHANGE BACK TO KSM WHEN WORKING
 }

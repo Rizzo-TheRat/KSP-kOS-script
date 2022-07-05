@@ -8,6 +8,8 @@ Set TERMINAL:HEIGHT TO fullscreen.
 
 Global DispList is list().  //SLog output data
 Global BlankLine to " ".
+Global MissionComplete to False.
+
 
 
 Global Thrott to 0.
@@ -23,7 +25,7 @@ FS:add("TargetShip","").  		//set target if not blank
 FS:add("Status","").	  		//current ship status - not sure if needed now
 FS:add("TaskList",List()).		//Mission stack list of tasks
 FS:add("FileList",List()).		//list of files to open at startup
-//FS:add("DelegateList",List()).	//List of delegate functions.
+FS:add("Delegate",Lexicon()).	//List of delegate functions.
 FS:add("Alt",0).          		//Intermediate alttiude setting
 FS:add("FinalAlt",0).     		//target altitude for bodies
 FS:add("Time",0).         		//Always a world time of an event
@@ -47,9 +49,28 @@ until blankline:length = terminal:width-1{
 
 StatusUpdate().
 Supdate().
-Loadfile("Lib_Mission",false).
+
+Loadfile("Lib_Decider",false).
+Loadfile("Run_Mission",false).
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+Slog(" ").
+Slog("Done").
+wait 2.
+reboot.
 
 
 //FUNCTIONS
@@ -133,6 +154,32 @@ function SUpdate{
 	//Clear the data
 	DispList:clear().
 	wait 0.
+}
+
+
+
+Function Menudraw{  	//Generates the menu and returns the selection text
+	parameter Inlist,MenuText.  //inlist is up to 10(?) items to be selected.  Menutext is question.
+	if inlist:length=0{
+		return "".
+	}else{
+		Local ItemNum to 0.
+		SUpdate().
+		SDisp( "Select " + MenuText,"").
+		until ItemNum=Inlist:length{
+			SDisp( ItemNum + " - " + Inlist[ItemNum],"").
+			Set ItemNum to ItemNum+1.
+		}
+		SUpdate().
+		Local MenuVal to -1.
+		Until Menuval>-1 and Menuval<inlist:length{
+			set MenuVal to Terminal:Input:getchar().
+			if Menuval="."{
+				Reboot.
+			}
+		}
+		return inlist[Menuval:tonumber].
+	}
 }
 
 //Load and run a file

@@ -97,38 +97,26 @@ if shipmission="New Mission"{
 
 
 
+local dList is List().
+
+dList:add("d_Launch").
+dList:add("d_Transit").
+dList:add("d_Land").
+dList:add("d_Rendezvous").
+
+
+local ret is Slog(Decider(dList)).
+slog("******************").
+slog(ret).
 
 
 
 
 
 
-Function Menudraw{  	//Generates the menu and returns the selection text
-	parameter Inlist,MenuText.  //inlist is up to 10(?) items to be selected.  Menutext is question.
-	if inlist:length=0{
-		return "".
-	}else{
-		Local ItemNum to 0.
-		SUpdate().
-		SDisp( "Select " + MenuText,"").
-		until ItemNum=Inlist:length{
-			SDisp( ItemNum + " - " + Inlist[ItemNum],"").
-			Set ItemNum to ItemNum+1.
-		}
-		SUpdate().
-		Local MenuVal to -1.
-		Until Menuval>-1 and Menuval<inlist:length{
-			set MenuVal to Terminal:Input:getchar().
-			if Menuval="."{
-				Reboot.
-			}
-		}
-		return inlist[Menuval:tonumber].
-	}
-}
 
 
-Slog(" ").
-Slog("Done").
-wait 2.
-reboot.
+
+
+
+
