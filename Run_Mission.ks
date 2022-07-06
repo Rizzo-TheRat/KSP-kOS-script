@@ -56,7 +56,7 @@ if shipmission="New Mission"{
 			menulist:add("Land at KSC").		
 		}
 	
-	}else if shipmission=Orbit{
+	}else if shipmission="Orbit"{
 		menulist:add("Equatorial").
 		menulist:add("Polar").
 		menulist:add("Match Plane").
@@ -96,18 +96,24 @@ if shipmission="New Mission"{
 } 
 
 
+Loadfile("Lib_Common",false).
 
-local dList is List().
+Global dList is List().
+until MissionComplete=True{
+	dList:clear.
+	dList:add("d_Launch").
+	dList:add("d_Transit").
+	dList:add("d_Land").
+	dList:add("d_Rendezvous").
+	until PhaseComplete=true{
+		local NextFunc is Decider(dList).
+		Slog("Next Function: ",NextFunc).
+		FS:Delegate[NextFunc]:call. 
+	}
+}
 
-dList:add("d_Launch").
-dList:add("d_Transit").
-dList:add("d_Land").
-dList:add("d_Rendezvous").
-
-
-local ret is Slog(Decider(dList)).
 slog("******************").
-slog(ret).
+slog("Mission Complete").
 
 
 

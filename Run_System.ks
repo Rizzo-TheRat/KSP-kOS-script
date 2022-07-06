@@ -5,16 +5,15 @@ Global fullscreen to 50.
 Set TERMINAL:WIDTH TO 50.
 Set TERMINAL:HEIGHT TO fullscreen.
 
+Global BlankLine to " ".
+until blankline:length = terminal:width-1{
+	set blankline to blankline + " ".
+}
+
 
 Global DispList is list().  //SLog output data
-Global BlankLine to " ".
 Global MissionComplete to False.
-
-
-
-Global Thrott to 0.
-
-
+Global PhaseComplete to False.
 
 
 //Persistant data for the json file
@@ -26,7 +25,7 @@ FS:add("Status","").	  		//current ship status - not sure if needed now
 FS:add("TaskList",List()).		//Mission stack list of tasks
 FS:add("FileList",List()).		//list of files to open at startup
 FS:add("Delegate",Lexicon()).	//List of delegate functions.
-FS:add("Alt",0).          		//Intermediate alttiude setting
+FS:add("InitialAlt",0).          		//Intermediate alttiude setting
 FS:add("FinalAlt",0).     		//target altitude for bodies
 FS:add("Time",0).         		//Always a world time of an event
 FS:add("dTime",0).  	  		//Always a delta time to an event
@@ -41,11 +40,6 @@ until outline=Lowscreen-1{
 	set outline to outline+1.
 }
 
-//set blank text line
-until blankline:length = terminal:width-1{
-	set blankline to blankline + " ".
-}
-
 
 StatusUpdate().
 Supdate().
@@ -54,27 +48,16 @@ Loadfile("Lib_Decider",false).
 Loadfile("Run_Mission",false).
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 Slog(" ").
 Slog("Done").
 wait 2.
 reboot.
 
 
-//FUNCTIONS
 
+//    ***************
+//    *  FUNCTIONS  *
+//    ***************
 //Screen logging
 function SLog{  //adds a new line to bottom section of screen
 	parameter intext, moretext is "".
@@ -213,4 +196,9 @@ Function LoadFile2{
 		COPYPATH("0:/" +FileName +".ks", "").
 		SLog( "Loaded " + Filename).		
 	}
+}
+
+Function AddTask{  //put new task in to the task list
+	parameter TaskName.
+	FS:TaskList:add(TaskName)..
 }
