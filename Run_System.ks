@@ -14,18 +14,28 @@ until blankline:length = terminal:width-1{
 Global DispList is list().  //SLog output data
 Global MissionComplete to False.
 Global PhaseComplete to False.
+Global dQueue is queue().
+
+//parameters to simplify apsis calculations
+Global Ap to "Ap".
+Global Pe to "Pe".
+Global Near to "Near".
+Global Far to "Far".
+Global Now to "Now".
+Global Bod to "Body".
+Global Nxt to "Nxt".
 
 
 //Persistant data for the json file
 Global FS is Lexicon().
-FS:add("TargetBody",ship:body).  //set target if not blank
+FS:add("TargetBody",ship:body). //Body to visit
 FS:add("Task","").		  		//current tasking
 FS:add("TargetShip","").  		//set target if not blank
 FS:add("Status","").	  		//current ship status - not sure if needed now
-FS:add("TaskList",List()).		//Mission stack list of tasks
+FS:add("TaskList",List()).		//List of mission tasks
 FS:add("FileList",List()).		//list of files to open at startup
 FS:add("Delegate",Lexicon()).	//List of delegate functions.
-FS:add("InitialAlt",0).          		//Intermediate alttiude setting
+FS:add("InitialAlt",0).         //Intermediate alttiude setting
 FS:add("FinalAlt",0).     		//target altitude for bodies
 FS:add("Time",0).         		//Always a world time of an event
 FS:add("dTime",0).  	  		//Always a delta time to an event
@@ -76,6 +86,7 @@ function SLog{  //adds a new line to bottom section of screen
 
 //print status to top of screen and set up seperator lines
 Function StatusUpdate{ 	
+	set fs:Status to Ship:status.
 	print (" Target Body:  " + FS:TargetBody:name):padright(terminal:width-10):substring(0,terminal:width-15)+"|" at (0,0).
 	print ("Ship mission:  " + FS:Task):padright(terminal:width-10):substring(0,terminal:width-15)+"|" at (0,1).
 	print (" Target Ship:  " + FS:TargetShip):padright(terminal:width-10):substring(0,terminal:width-15)+"|" at (0,2).

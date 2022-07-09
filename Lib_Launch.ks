@@ -1,16 +1,16 @@
 Function Launch{
 	if ship:body:atm:exists{
-		AtmoLaunch().
+		set ret to AtmoLaunch().
 	}else{
-		VacLaunch().
+		set ret to VacLaunch().
 	}
+	return Ret.
 }
 if fs:delegate:haskey("Launch")=false {fs:delegate:add("Launch",Launch@).}
 
 
 Function AtmoLaunch{
 	Local Launchbearing to fs:angle.
-	Local InitialAlt to ship:body:atm:height+10000.  //altitude of initial Ap
 	Local APLead to 60.  //time to chase Apoapsis in seconds
 	Local TWR to 0.      //initialise variable used to calculate turn angle
 	Local TurnVel to 30. //Velocity to start turn
@@ -18,10 +18,11 @@ Function AtmoLaunch{
 	Local CorrectedBearing to LaunchBearing.	//Don't correct to begin with
 	Local initTopVec to ship:facing:topvector.
 
-	if FS:FinalAlt<FS:InitialAlt{
-		set FS:FinalAlt to FS:InitialAlt.
-	}
+slog("InitialAlt: ",FS:InitialAlt).
+slog("FinalAlt: ",FS:FinalAlt).
 
+
+	//WILL NEED TO CHANGE TO STOP PAYLOAD PANELS OPENING TOO SOON
 	when ship:altitude>ship:body:atm:height*0.9 then{
 		DeployFairing().
 		Panels On.
@@ -135,17 +136,19 @@ if partlist:length<50{
 	Physics(2).
 	Local EngOn to false.
 	until Ship:altitude>ship:body:atm:height{.
-		if ship:apoapsis<ship:body:atm:height+1000{
+		if ship:apoapsis<fs:initialAlt{
 			set thrott to 2 * ship:Mass / max(0.1,Ship:MaxThrust).  //2m/s acc
 			set EngOn to True.
 		}
-		if EngOn=True and ship:apoapsis>ship:body:atm:height+2000{
+		if EngOn=True and ship:apoapsis>fs:initialAlt*1.01{
 			set Thrott to 0.
 			Set EngOn to False.
 		}
 		SDisp("EngOn", EngOn).
 		SDisp("Apoapsis",round(Ship:apoapsis)).
 		SDisp("Eta:Ap",round(eta:apoapsis)).
+		sDisp("Initial",round(FS:InitialAlt)).
+		sDisp("Final",round(FS:FinalAlt)).
 		SUpdate().
 	}
 	set Thrott to 0.	
@@ -155,8 +158,8 @@ if partlist:length<50{
 	SLog("Finalising Apoapsis to " + fs:FinalAlt + " meters"). 	
 	Set Warp to 0.		
 	lock steering to heading(LaunchBearing,0):vector.
-	Until ship:apoapsis>FS:InitialAlt or eta:apoapsis<10 {
-		ThrottSet(2,0,((FS:InitialAlt-ship:apoapsis)/20),5).
+	Until ship:apoapsis>FS:FinalAlt or eta:apoapsis<10 {
+		ThrottSet(2,0,((FS:FinalAlt-ship:apoapsis)/20),5).
 		SUpdate().
 	}
 	Set Thrott to 0.
@@ -173,10 +176,19 @@ Function DeployFairing{
 }
 
 
-Function SetInitialAlt{
+Function SetLaunchAlt{
 	if ship:body:atm:exists{
-		set fs:InitialAlt to ship:body:atm:height.
+		set fs:InitialAlt to ship:body:atm:height*1.05.
+		set fs:FinalAlt to ship:body:atm:height*1.15.
+		if ship:body=Kerbin{
+			set FS:FinalAlt to 80000.
+		}
 	}else{
 		set fs:InitialAlt to 10000.
+		set FS:FinalAlt to fs:initialAlt.
+	}
+	if FS:Task="Rendezvous" or FS:Task="Formate" or FS:Task="Dock"{
+		///SET FINAL ALT TO CIRCULARISE FOR INTERCEPT 
 	}
 }
+

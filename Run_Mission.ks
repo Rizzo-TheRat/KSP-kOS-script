@@ -5,6 +5,9 @@
 Local MenuList to list("Single Task","New Mission").
 Local TgtList to list().
 
+if fs:delegate:haskey("m_Launch")=false {fs:delegate:add("m_launch",m_Launch@).}
+
+
 
 if exists("1:/Status.json") {
 	Local Shipfile to ReadJSON("1:/Status.json").
@@ -98,18 +101,26 @@ if shipmission="New Mission"{
 
 Loadfile("Lib_Common",false).
 
-Global dList is List().
-until MissionComplete=True{
-	dList:clear.
-	dList:add("d_Launch").
-	dList:add("d_Transit").
-	dList:add("d_Land").
-	dList:add("d_Rendezvous").
-	until PhaseComplete=true{
-		local NextFunc is Decider(dList).
-		Slog("Next Function: ",NextFunc).
-		FS:Delegate[NextFunc]:call. 
-	}
+//Global sList is queue().
+//need to sequence this not decide it - run all of them regardlessl of output
+//sList:clear.
+//sList:push("d_Launch").
+//sList:push("d_Transit").
+//sList:push("d_Land").
+//sList:push("d_Rendezvous").
+//until MissionComplete=true{
+//	local NextFunc is Decider(dQueue).
+//	Slog("Next Function: ",NextFunc).
+//	FS:Delegate[NextFunc]:call. 
+//}
+
+Until MissionComplete=True{
+	m_Mission().
+
+//	m_Launch().
+//	m_Transit().
+//	m_Land().
+//	m_Rendezvous().
 }
 
 slog("******************").
@@ -117,6 +128,63 @@ slog("Mission Complete").
 
 
 
+//    ***************
+//    *  FUNCTIONS  *
+//    ***************
+
+
+Function m_Mission{
+	SLOG("Runing Main Mission").
+	dQueue:clear.
+	dQueue:push("m_Launch").
+	dQueue:push("m_Transit").
+	dQueue:push("m_Land").
+	dQueue:push("m_RendezVous").
+	Local Ret to Decider().
+	if Ret=False{
+		Return Ret.
+	}else{
+		FS:delegate[Ret]:call.
+	}
+	dQueue:clear.
+}
+
+
+
+
+Function m_Launch{
+	if (ship:status="PRELAUNCH" or ship:status="Landed"){
+		loadfile("Lib_Launch",False).
+		return "d_Launch".
+	}else{
+		return False.
+	}
+}
+
+
+Function m_Transit{
+	if ship:body<>fs:targetbody{
+		slog("Need to Transit").
+		d_Transit().		
+	}
+}
+//if fs:delegate:haskey("d_Transit")=false {fs:delegate:add("d_Transit",d_Transit@).}
+
+Function m_Land{
+	if fs:task:startswith("Land")=true{
+		slog("Need to Land").
+		dLand().	
+	}
+}
+//if fs:delegate:haskey("d_Land")=false {fs:delegate:add("d_Land",d_Land@).}
+
+Function m_Rendezvous{
+	if fs:task="Dock" or fs:task="Formate"{
+		slog("Need to Rendezvous").
+		dRendezvous().		
+	}
+}
+//if fs:delegate:haskey("d_Rendezvous")=false {fs:delegate:add("d_Rendezvous",d_Rendezvous@).}
 
 
 

@@ -1,3 +1,163 @@
+function ApsAlt{  		//Altitude of specified apsis
+	parameter Apsis.  // Pe, Ap, Near or Far.
+	if Apsis = Pe{
+		Return ship:periapsis.
+	}else if Apsis = Ap{
+		Return Ship:apoapsis.
+	}else if Apsis = Far{
+		Set halfOrb to ship:orbit:period/2.
+		if abs(HalfOrb-eta:periapsis)<abs(HalfOrb-eta:apoapsis){
+			Return ship:periapsis.
+		}else{
+			Return ship:apoapsis.
+		}
+	}else if Apsis = Near{
+		if ship:status="Sub_Orbital"{
+			return ship:apoapsis.
+		}else if ship:status="Escaping"{
+			return ship:periapsis.
+		}else{
+			Set halfOrb to ship:orbit:period/2.
+			if abs(HalfOrb-eta:periapsis)>abs(HalfOrb-eta:apoapsis){
+				Return ship:periapsis.
+			}else{
+				Return ship:apoapsis.
+			}
+		}	
+	}else if Apsis = Nxt{
+		if ship:status="Sub_Orbital"{
+			return ship:apoapsis.
+		}else if ship:status="Escaping"{
+			return ship:periapsis.
+		}else{
+			if eta:periapsis<eta:apoapsis{
+				Return ship:periapsis.
+			}else{
+				Return Ship:apoapsis.
+			}
+		}	
+	}else{
+		Slog("Error in ApsAlt - " + Apsis).
+		Return 0.
+	}
+}
+
+function ApsEta{			//ETA of speficied Apsis
+	parameter Apsis.  // Pe, Ap, Near, Far, Nxt or Bod.
+	if Apsis = Pe{
+		Return eta:periapsis.
+	}else if Apsis = Ap{
+		Return eta:apoapsis.
+	}else if Apsis = Far{
+		Set halfOrb to ship:orbit:period/2.
+		if abs(HalfOrb-eta:periapsis)<abs(HalfOrb-eta:apoapsis){
+			Return eta:periapsis.
+		}else{
+			Return eta:apoapsis.
+		}
+	}else if Apsis = Near{
+		if ship:status="Sub_Orbital"{
+			return eta:apoapsis.
+		}else if ship:status="Escaping"{
+			return eta:periapsis.
+		}else{
+			Set halfOrb to ship:orbit:period/2.
+			if abs(HalfOrb-eta:periapsis)>abs(HalfOrb-eta:apoapsis){
+				Return eta:periapsis.
+			}else{
+				Return eta:apoapsis.
+			}
+		}
+	}else if Apsis = Nxt{
+		if ship:status="Sub_Orbital"{
+			return eta:apoapsis.
+		}else if ship:status="Escaping"{
+			return eta:periapsis.
+		}else{
+			return min(eta:periapsis,eta:apoapsis).
+		}
+	}else if Apsis=Bod{
+		return (eta:transition + orbit:nextpatch:nextpatcheta)/2.
+	}else{
+		Slog("Error in ApsEta").
+	}
+}
+
+function BurnCalc{		//Returns time to burn specified dV
+	parameter dVreq.
+	set dVreq to abs(dVreq).
+	local StageThrust is list().
+	local StageISP is list().
+	local StageMass is list().
+	local StageDryMass is list().
+	
+	//Count stages
+	list Engines in EngList.
+	local numstages to -1.
+	for engine in englist{
+		if engine:decoupledin>numstages{
+			set numstages to engine:decoupledin.
+		}
+	}
+	if numstages>1{
+		//setup arrays	set i to 0.	
+		local i to 0.
+		until i>numstages{
+			Stagemass:add(0).
+			StageDryMass:add(0).
+			StageISP:add(0).
+			StageThrust:add(0).
+			set i to i+1.
+		}
+
+		//Thrust.
+		for Eng in Englist{
+			if eng:decoupledin>-1{
+				set stagethrust[eng:decoupledin] to stagethrust[eng:decoupledin]+eng:possiblethrustat(0).
+			}
+		}
+
+		//ISP
+		for Eng in Englist{
+			if eng:decoupledin>-1{
+				set StageISP[eng:decoupledin] to stageISP[eng:decoupledin] + eng:possiblethrustat(0)/StageThrust[eng:decoupledin]*eng:vacuumISP.
+			}
+		}
+
+		//Mass
+		list parts in partlist.
+		for p in partlist{
+			if p:decoupledin>-1{
+				set stagemass[p:decoupledin] to stagemass[p:decoupledin]+p:mass.
+				set stagedrymass[p:decoupledin] to stagedrymass[p:decoupledin]+p:drymass.
+			}
+		}
+
+		local stagedV to 9.81*stageISP[numstages]*ln(ship:mass/(ship:mass-stagemass[numstages]+stagedrymass[numstages])).
+		//local nextstagemass to ship:mass-stagemass[numstages].
+		//local nextstage to min(0,numstages-1).
+		//local nextstagedV to 9.81*stageISP[nextstage]*ln(nextstagemass/(nextstagemass-stagemass[nextstage]+stagedrymass[nextstage])).
+
+		local FirstDuration to 0.
+		local SecondDuration to 0.
+		
+		if dVreq<stagedV or numstages=0 {
+			set FirstDuration to ship:mass * stageISP[numstages] * 9.81 / stagethrust[numstages] * (1-constant:e^ (-abs(dVreq)/(stageISP[numstages]*9.81))).
+		}else{
+			set FirstDuration to ship:mass * stageISP[numstages] * 9.81 / stagethrust[numstages] * (1-constant:e^ (-abs(stagedV)/(stageISP[numstages]*9.81))).
+			set SecondDuration to (ship:mass-stagemass[numstages]) * stageISP[min(0,numstages-1)] * 9.81 / stagethrust[min(0,numstages-1)] * (1-constant:e^ (-(dVreq-stagedV)/(stageISP[min(0,numstages-1)]*9.81))).		
+		}		
+		return FirstDuration+SecondDuration.
+	}else{
+		Local TotISP to 0.
+		for eng in englist{
+			set TotISP to TotISP+ship:maxthrust/eng:possiblethrustat(0)*eng:vacuumISP.
+		}
+		local totdV to 9.81*TotISP*ln(ship:mass/ship:drymass).
+		return ship:mass * TotISP * 9.81 / ship:maxthrust * (1-constant:e^ (-abs(dVreq)/(TotISP*9.81))).
+	}
+}
+
 Function Circularise{	//circularise at the next Apsis
 	Initialise().
 	GimbalLimit(1).
@@ -87,8 +247,6 @@ Function Circularise{	//circularise at the next Apsis
 }		
 if fs:delegate:haskey("Circularise")=false {fs:delegate:add("Circularise",Circularise@).}
 
-
-
 Function GimbalLimit{  //limits gimbal on all engines
 	Parameter lim.
 	list Engines in EngList.
@@ -98,8 +256,6 @@ Function GimbalLimit{  //limits gimbal on all engines
 		}
 	}
 }
-
-
 
 Function Initialise{		//Setup essential parameters
 	if ship:mass >50{ 
@@ -177,8 +333,6 @@ Function SetDropTank{
 		}
 	}
 }
-
-
 
 function staging{		//Setup staging
 	//Staging
