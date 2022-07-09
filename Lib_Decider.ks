@@ -1,11 +1,7 @@
 function Decider{
 	Local Ret is False.
 	until Ret<>False or dQueue:empty{
-		local d is dQueue:pop().
-//		slog ("Decider calls:  ",d).
-		Set ret to fs:delegate[d]:call.
-//		slog ("Decider returns:  ", ret).
-		//set Ret to FS:Delegate[dQueue:pop()]:call.
+		Set ret to fs:delegate[dQueue:pop()]:call.
 	}
 	Return Ret.
 }
@@ -110,6 +106,9 @@ Function d_Transit{
 }
 if fs:delegate:haskey("d_Transit")=false {fs:delegate:add("d_Transit",d_Transit@).}
 
+
+
+
 Function d_Land{
 	if fs:task:startswith("Land")=true{
 		slog("Need to Land").
@@ -120,6 +119,9 @@ Function d_Land{
 	}
 }
 if fs:delegate:haskey("d_Land")=false {fs:delegate:add("d_Land",d_Land@).}
+
+
+
 
 Function d_Rendezvous{
 	if fs:task="Dock" or fs:task="Formate"{
