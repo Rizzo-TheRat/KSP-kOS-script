@@ -1,54 +1,15 @@
-function Decider_old{
-	parameter Q is queue().
-	local Ret is False.
-	until Q:empty or Ret<>False{
-		slog("Decider: ",q:peek()).
-		set Ret to fs:delegate[q:pop()]:call.
-		slog("Return: ",Ret).
-	}
-	Q:clear.
-	return Ret.
-}
-
 function Decider{
 	Local Ret is False.
 	until Ret<>False or dQueue:empty{
-		set Ret to FS:Delegate[dQueue:pop()]:call.
+		local d is dQueue:pop().
+//		slog ("Decider calls:  ",d).
+		Set ret to fs:delegate[d]:call.
+//		slog ("Decider returns:  ", ret).
+		//set Ret to FS:Delegate[dQueue:pop()]:call.
 	}
 	Return Ret.
 }
 	
-
-
-Function Execute_old{
-	//execute task list in sequence
-	Local Ret to True.
-	statusupdate().
-	until FS:TaskList:length = 0 or Ret <> True{
-		Local Qsave to false.
-		if fs:tasklist<>"DummyTask"{
-			SLog("Processing "+ FS:TaskList[0]).
-		}
-		Set Ret to False.
-		set Ret to FS:Delegate[FS:TaskList[0]]:call.
-		if Ret=True{
-			If FS:TaskList[0]="Circularise"{
-				Set Qsave to true.  //set this before removing from list.
-				set PhaseComplete to True.
-			}	
-			FS:TaskList:remove(0).
-			wait 0.1.
-			if Qsave{
-				kuniverse:quicksave().
-				SLog("QuickSaved").
-			}
-		}
-		WriteJSON(FS,"1:/Status.json").	
-		statusupdate().
-	}
-	wait 0.1.
-	Return "Phase Complete".
-}
 Function Execute{      	//execute task list in sequence
 	Local Ret to True.
 	statusupdate().
@@ -57,9 +18,6 @@ Function Execute{      	//execute task list in sequence
 		if fs:tasklist<>"DummyTask"{
 			SLog("Executing "+ FS:TaskList[0]).
 		}
-		
-		slog("Executing Task: ",FS:Tasklist[0]).
-		
 		set Ret to FS:Delegate[FS:TaskList[0]]:call.
 		
 	slog("Ran it").	
@@ -85,21 +43,25 @@ if fs:delegate:haskey("Execute")=false {fs:delegate:add("Execute",Execute@).}
 
 
 
+
+//*************Launch*************
+
 Function d_Launch{
-	SLOG("Runing D_Launch").
-	dQueue:clear.
-	dQueue:push("d_Launch_Equatorial").
-	dQueue:push("d_Launch_Polar").
-	dQueue:push("d_Launch_Intercept").
-	dQueue:push("d_Launch_Child").
-	dQueue:push("d_Launch_Sibling").
-	Local Ret to Decider().
-	if Ret=False{
-		Return Ret.
+	if (ship:status="PRELAUNCH" or ship:status="Landed"){
+		SLOG("Runing D_Launch").
+		loadfile("Lib_Launch",False).
+		dQueue:clear.
+		dQueue:push("d_Launch_Equatorial").
+		dQueue:push("d_Launch_Polar").
+		dQueue:push("d_Launch_Intercept").
+		dQueue:push("d_Launch_Child").
+		dQueue:push("d_Launch_Sibling").
+		Local Ret to Decider().
+		dQueue:clear.
+		Return Ret.		
 	}else{
-		FS:delegate[Ret]:call.
+		Return False.
 	}
-	dQueue:clear.
 }
 if fs:delegate:haskey("d_Launch")=false {fs:delegate:add("d_Launch",d_Launch@).}
 
@@ -128,3 +90,44 @@ Function d_Launch_Polar{
 	}
 }
 if fs:delegate:haskey("d_Launch_Polar")=false {fs:delegate:add("d_Launch_Polar",d_Launch_Polar@).}
+
+
+
+
+
+
+
+
+
+Function d_Transit{
+	if ship:body<>fs:targetbody{
+		slog("Need to Transit").
+		//set up next list and run decider or add tasks and return Execute
+		return false.
+	}else{
+		return false.
+	}
+}
+if fs:delegate:haskey("d_Transit")=false {fs:delegate:add("d_Transit",d_Transit@).}
+
+Function d_Land{
+	if fs:task:startswith("Land")=true{
+		slog("Need to Land").
+		//set up next list and run decider or add tasks and return Execute
+		return false.
+	}else{
+		return false.
+	}
+}
+if fs:delegate:haskey("d_Land")=false {fs:delegate:add("d_Land",d_Land@).}
+
+Function d_Rendezvous{
+	if fs:task="Dock" or fs:task="Formate"{
+		slog("Need to Rendezvous").
+		//set up next list and run decider or add tasks and return Execute	
+		return false.
+	}else{
+		return false.
+	}
+}
+if fs:delegate:haskey("d_Rendezvous")=false {fs:delegate:add("d_Rendezvous",d_Rendezvous@).}

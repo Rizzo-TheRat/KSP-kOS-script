@@ -18,20 +18,8 @@ Function AtmoLaunch{
 	Local CorrectedBearing to LaunchBearing.	//Don't correct to begin with
 	Local initTopVec to ship:facing:topvector.
 
-slog("InitialAlt: ",FS:InitialAlt).
-slog("FinalAlt: ",FS:FinalAlt).
-
-
-	//WILL NEED TO CHANGE TO STOP PAYLOAD PANELS OPENING TOO SOON
-	when ship:altitude>ship:body:atm:height*0.9 then{
-		DeployFairing().
-		Panels On.
-	}
-
 	Physics(0).
 	Initialise().	//includes staging
-//	SetAntenna().	//Set all to point at Kerbin  ONLY FOR REMOTETECH?
-
 	set shipheading to lookdirup(heading(CorrectedBearing,90-Climbangle,0):vector,InitTopVec).
 	Set Thrott to 1.
 	
@@ -54,11 +42,9 @@ slog("FinalAlt: ",FS:FinalAlt).
 	//Initial Turn	
 	SLog("TWR at turn: "+ TWR).
 	Local Turnpitch to max(1,20*TWR-30).	
-
 	if fs:task="Sub Orbital"{
 		set Turnpitch to 0.1.
 	}
-	
 	SLog ("Turning to " + round(Turnpitch,1) + " degrees").	
 	until VANG(ship:velocity:surface, ship:up:vector)>Turnpitch{
 		Set ClimbAngle to  abs(vang(ship:up:vector,ship:velocity:surface)+5).
@@ -72,6 +58,14 @@ slog("FinalAlt: ",FS:FinalAlt).
 	}	
 	SLog("Gravity Turn completed at " +round(ship:velocity:surface:mag,1) + " m/s").	
 	SLog("Climb to Apoapsis " + FS:InitialAlt + "m").	
+
+	Local NoseDown to False.
+	when ship:Q<0.001 then{
+		DeployFairing().
+		Panels On.  	//WILL NEED TO CHANGE TO STOP PAYLOAD PANELS OPENING TOO SOON
+		Wait 1.
+		set Nosedown to True.  //used to pitch down early
+	}
 	
 	//Setup PID for AP chase
 	set kp to 0.1. 
@@ -82,16 +76,10 @@ slog("FinalAlt: ",FS:FinalAlt).
 	set pid:maxoutput to 0.1. 
 	set pid:minoutput to -0.1.  
 
-list parts in partlist.
-if partlist:length<50{
-	physics(1).
-}
-
-	Local NoseDown to False.
-	when ship:Q<0.001 then{
-		DeployFairing().
-		Wait 1.
-		set Nosedown to True.
+	//Warp is ship is small
+	list parts in partlist.
+	if partlist:length<50{
+		physics(1).
 	}
 
 	//Climb
@@ -105,7 +93,10 @@ if partlist:length<50{
 			set CorrectedBearing to 3*LaunchBearing-2*Currentbearing.
 		}		
 	
-		if Nosedown=false and vang(ship:up:vector,ship:velocity:surface)<85{  
+		if	Nosedown=true{
+			set Thrott to 1.
+			set shipheading to lookdirup(heading(CorrectedBearing,0,0):vector,InitTopVec).
+		}else if vang(ship:up:vector,ship:velocity:surface)<85{  
 			set Thrott to max(0.1,min(1,Thrott+pid:update(time:seconds,eta:apoapsis))).  
 			set shipheading to lookdirup(heading(CorrectedBearing,Max(1,90-Climbangle),0):vector,InitTopVec).
 		}else{
